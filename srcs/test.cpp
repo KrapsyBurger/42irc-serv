@@ -8,66 +8,66 @@
 #include <cctype>
 
 
-bool is_string_digit(char *str)
-{
-	while(*str)
-	{
-		if (!isdigit(*str))
-			return false;
+bool	is_string_digit( char *str ) {
+
+	while ( *str ) {
+
+		if ( !isdigit( *str ) )
+			return ( EXIT_FAILURE );
 		str++;
 	}
-	return true;
+	return ( EXIT_SUCCESS );
 }
 
-bool arguments_check(int argc, char *str)
-{
-	if (argc != 3)
-	{
+bool	arguments_check( int argc, char *str ) {
+
+	if ( argc != 3 ) {
+
 		std::cerr << "Error : must put 2 arguments." << std::endl;
-		return false;
+		return ( EXIT_FAILURE );
 	}
-	if (!is_string_digit(str))
-	{
+	if ( is_string_digit( str ) ) {
+
 		std::cerr << "Error : first argument have to be only digits." << std::endl;
-		return false;
+		return ( EXIT_FAILURE );
 	}
-	return true;
+	return ( EXIT_SUCCESS );
 }
 
 int main(int argc, char **argv)
 {
 
-	if (!arguments_check(argc, argv[1]))
-		return (-1);
+	if ( arguments_check(argc, argv[1]) )
+		return ( EXIT_FAILURE );
 
-	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0)
-	{
+	int listening = socket(AF_INET, SOCK_STREAM, 0);
+	if (listening < 0) {
+
 		std::cerr << "An error has occured while creating the socket." << std::endl;
-		return (-1);
+		return ( EXIT_FAILURE );
 	}
-	std::cout << "socket is : " << sockfd << std::endl;
+	std::cout << "socket is : " << listening << std::endl;
 	
-	struct sockaddr_in serverAddr;
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(atoi(argv[1]));
-	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	sockaddr_in hint;
+	hint.sin_family = AF_INET;
+	hint.sin_port = htons( atoi( argv[1] ) );
+	inet_pton( AF_INET, "0.0.0.0", &hint.sin_addr );
 
-	int	bind_result = bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-	if (bind_result < 0)
-	{
-		std::cerr << "Error : cannot bind to the socket. Port is already used." << std::endl;
-		return (-1);
+	
+	if ( bind( listening, AF_INET, &hint, sizeof(hint) ) < 0) {
+
+		std::cerr << "Error : cannot bind to IP/Port." << std::endl;
+		return ( EXIT_FAILURE );
 	}
 
 
-	int listen_result = listen(sockfd, 5);
-	if (listen_result < 0)
-	{
+	int listen_result = listen(listening, 5);
+	if (listen_result < 0) {
+
 		std::cerr << "Error : cannot listen on this port." << std::endl;
-		return (-1);
+		return ( EXIT_FAILURE );
 	}
 
-	std::cout << "Le client est connecte sur le port " << argv[1] << "." << std::endl;
+	std::cout << "The client is connected to port : " << argv[1] << "." << std::endl;
 	return (0);
 }
