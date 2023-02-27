@@ -68,10 +68,21 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
-	std::cout << "Le client est connecte sur le port " << argv[1] << "." << std::endl;
+	std::cout << "Le serveur est connecte sur le port " << argv[1] << "." << std::endl;
 
-	while(1)
-	{}
+
+	char recv_buff[1024];
+	int byte_received;
+	int	clientsockfd;
+	while (true)
+	{
+		clientsockfd = accept(sockfd, NULL, NULL);
+		byte_received = recv(clientsockfd, recv_buff, sizeof(recv_buff), 0);
+		recv_buff[byte_received] = '\0';
+
+		if (byte_received > 0)
+			std::cout << recv_buff << std::endl;
+	}
 
 	std::string quit_cmd = "/quit\n";
 	int send_result = send(sockfd, quit_cmd.c_str(), quit_cmd.length(), 0);
