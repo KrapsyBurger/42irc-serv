@@ -10,7 +10,7 @@
 
 bool is_string_digit(char *str)
 {
-	while(*str)
+	while (*str)
 	{
 		if (!isdigit(*str))
 			return false;
@@ -69,5 +69,20 @@ int main(int argc, char **argv)
 	}
 
 	std::cout << "Le client est connecte sur le port " << argv[1] << "." << std::endl;
+
+	while(1)
+	{}
+
+	std::string quit_cmd = "/quit\n";
+	int send_result = send(sockfd, quit_cmd.c_str(), quit_cmd.length(), 0);
+	if (send_result < 0)
+	{
+		std::cerr << "Unable to send the message to the socket." << std::endl;
+		return (-1);
+	}
+	
+	std::cout << "A message has been sent to " << argv[1] << "." << std::endl;
+
+	close(sockfd);
 	return (0);
 }
