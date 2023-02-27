@@ -2,6 +2,10 @@
 #include <unistd.h>
 #include <poll.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <netdb.h>
+#include <string.h>
+#include <string>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <cstdlib>
@@ -54,20 +58,79 @@ int main(int argc, char **argv)
 	inet_pton( AF_INET, "0.0.0.0", &hint.sin_addr );
 
 	
-	if ( bind( listening, AF_INET, &hint, sizeof(hint) ) < 0) {
+	if ( bind( listening, reinterpret_cast< sockaddr * >( &hint ), sizeof( hint ) ) < 0 ) {
 
 		std::cerr << "Error : cannot bind to IP/Port." << std::endl;
 		return ( EXIT_FAILURE );
 	}
 
 
-	int listen_result = listen(listening, 5);
-	if (listen_result < 0) {
+	
+	if ( listen( listening, SOMAXCONN ) < 0 ) {
 
-		std::cerr << "Error : cannot listen on this port." << std::endl;
+		std::cerr << "Error : cannot listen to the IP/Port." << std::endl;
 		return ( EXIT_FAILURE );
 	}
 
-	std::cout << "The client is connected to port : " << argv[1] << "." << std::endl;
-	return (0);
+	sockaddr_in client;
+	socklen_t clientSize = sizeof( client );
+	char host[NI_MAXHOST];
+	char svc[NI_MAXSERV];
+
+	int clientSocket = accept( listening,
+								 reinterpret_cast< sockaddr * >( &client ),
+								  &clientSize );
+
+	if ( clientSocket < 0 ) {
+
+		std::cerr << "Error : problem with client connecting." << std::endl;
+		return ( EXIT_FAILURE );
+	}
+	close( listening );
+
+	memset(host, 0, NI_MAXHOST);
+	memset(svc, 0, NI_MAXSERV);
+
+	int result = getnameinfo( reinterpret_cast< sockaddr * >( &client ),
+								  sizeof ( client ),
+								  host,
+								  NI_MAXHOST,
+								  svc,
+								  NI_MAXSERV,
+								  0);
+	if ( result ) {
+
+		std::cout << host << " connected on " << svc << std::endl;
+	} else {
+
+		inet_ntop( AF_INET, &client.sin_addr, host, NI_MAXHOST );
+		std::cout << host << " connected on " << ntohs( client.sin_port ) << std::endl;
+	}
+
+	char buf[4096];
+
+	while ( true ) {
+
+		memset( buf, 0, 4096 );
+		int bytesRecv = recv( clientSocket, buf, 4096, 0);
+		if ( bytesRecv < 0 ) {
+
+			std::cerr << "Error : connection issue." << std::endl;
+			break;
+		}
+
+		if ( !bytesRecv ) {
+
+			std::cout << "The client disconected." << std::endl;
+			break;
+		}
+
+		std::cout << "Received : " << std::string( buf, 0, bytesRecv ) << std::endl;
+
+		send( clientSocket, buf, bytesRecv + 1, 0);
+	}
+
+	close( clientSocket );
+	
+	return ( EXIT_SUCCESS );
 }
