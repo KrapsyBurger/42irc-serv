@@ -5,11 +5,17 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <string.h>
+#include <stdio.h>
 #include <string>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <cstdlib>
 #include <cctype>
+#include <vector>
+#include <sstream>
+
+
+// 
 
 
 bool	is_string_digit( char *str ) {
@@ -109,6 +115,12 @@ int main(int argc, char **argv)
 
 	char buf[4096];
 
+	bool firstConnection = true;
+	std::string RPL_WELCOME = ":rpol!rpol@localhost 001 rpol :Welcome to the Internet Relay Network rpol!rpol@localhost\n";
+	std::string RPL_YOURHOST = ":rpol!rpol@localhost 002 rpol :Your host is kayak, running version 42\n";
+	std::string RPL_CREATED = ":rpol!rpol@localhost 003 rpol :This server was created at saint Gliglin\n";
+	std::string RPL_MYINFO = ":rpol!rpol@localhost 004 rpol :kayak 42 iwso ntio\n";
+
 	while ( true ) {
 
 		memset( buf, 0, 4096 );
@@ -127,7 +139,20 @@ int main(int argc, char **argv)
 
 		std::cout << "Received : " << std::string( buf, 0, bytesRecv ) << std::endl;
 
-		send( clientSocket, buf, bytesRecv + 1, 0);
+
+		if ( firstConnection ) {
+
+        	send( clientSocket, RPL_WELCOME.c_str(), RPL_WELCOME.length(), 0);
+			send( clientSocket, RPL_YOURHOST.c_str(), RPL_YOURHOST.length(), 0);
+			send( clientSocket, RPL_CREATED.c_str(), RPL_CREATED.length(), 0);
+			send( clientSocket, RPL_MYINFO.c_str(), RPL_MYINFO.length(), 0);
+			firstConnection = false;
+		} else {
+			
+			send( clientSocket, buf, bytesRecv + 1, 0);
+		}
+
+    	
 	}
 
 	close( clientSocket );
