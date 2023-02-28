@@ -36,6 +36,10 @@ bool arguments_check(int argc, char *str)
 
 int main(int argc, char **argv)
 {
+	std::string RPL_WELCOME = ":nfascia!nfascia@localhost 001 nfascia :Welcome to the Internet Relay Network nfascia!nfascia@localhost\n";
+	std::string RPL_YOURHOST = ":nfascia!nfascia@localhost 002 nfascia :Your host is <server_name>, running version <666>\n";
+	std::string RPL_CREATED = ":nfascia!nfascia@localhost 003 nfascia :This server was created <date>\n";
+	std::string RPL_MYINFO = ":nfascia!nfascia@localhost 004 nfascia :<server_name> <version> <user_modes> <chan_modes>\n";
 
 	if (!arguments_check(argc, argv[1]))
 		return (-1);
@@ -61,6 +65,7 @@ int main(int argc, char **argv)
 	}
 
 
+
 	int listen_result = listen(sockfd, 5);
 	if (listen_result < 0)
 	{
@@ -74,26 +79,27 @@ int main(int argc, char **argv)
 	char recv_buff[1024];
 	int byte_received;
 	int	clientsockfd;
+	int i = 0;
+	clientsockfd = accept(sockfd, NULL, NULL);
 	while (true)
 	{
-		clientsockfd = accept(sockfd, NULL, NULL);
 		byte_received = recv(clientsockfd, recv_buff, sizeof(recv_buff), 0);
 		recv_buff[byte_received] = '\0';
 
 		if (byte_received > 0)
-			std::cout << recv_buff << std::endl;
-	}
+			std::cout << "Received : " << std::string(recv_buff, 0, byte_received) << std::endl;
 
-	std::string quit_cmd = "/quit\n";
-	int send_result = send(sockfd, quit_cmd.c_str(), quit_cmd.length(), 0);
-	if (send_result < 0)
-	{
-		std::cerr << "Unable to send the message to the socket." << std::endl;
-		return (-1);
+		if (i == 0)
+		{
+			std::string nick_welcome = ":NICK :nfascia\n";
+			send(clientsockfd, nick_welcome.c_str(), nick_welcome.length(), 0);
+			send(clientsockfd, RPL_WELCOME.c_str(), RPL_WELCOME.length(), 0);
+			send(clientsockfd, RPL_YOURHOST.c_str(), RPL_YOURHOST.length(), 0);
+			send(clientsockfd, RPL_CREATED.c_str(), RPL_CREATED.length(), 0);
+			send(clientsockfd, RPL_MYINFO.c_str(), RPL_MYINFO.length(), 0);
+			i++;
+		}
 	}
-	
-	std::cout << "A message has been sent to " << argv[1] << "." << std::endl;
-
 	close(sockfd);
 	return (0);
 }

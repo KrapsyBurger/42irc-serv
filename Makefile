@@ -30,7 +30,7 @@ all: ${NAME}
 ${NAME}:	${OBJS}
 	@${CC} ${CFLAGS} -I $(INCLUDES) ${OBJS} -o ${NAME}
 	@printf "$(_GREEN)Compiling DONE !\n"
-	@printf "$(_CYAN)${BANNERPROJECT}\n"
+#	@printf "$(_CYAN)${BANNERPROJECT}\n"
 
 clean:
 	@printf "$(_RED)Removing objects...\n"
