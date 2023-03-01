@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   User.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rpol <marvin@42.fr>                        +#+  +:+       +#+        */
+/*   By: rpol <rpol@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/01 14:22:40 by rpol              #+#    #+#             */
-/*   Updated: 2023/03/01 16:54:37 by rpol             ###   ########.fr       */
+/*   Updated: 2023/03/01 22:31:48 by rpol             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,7 +62,7 @@ int User::getFd( void ) {
 
 std::string User::getName( void ) {
 
-	return ( this->_nick + "!" + this->_nick + "@" + this->_host );
+	return ( this->_nick + "!" + this->_name + "@" + this->_host );
 }
 
 void User::setNick( std::string nick ) {
@@ -89,6 +89,7 @@ void User::_setInfo( std::string str, int clientSocket ) {
 			
             std::string nick = str.substr(nick_pos + 5, nick_end_pos - nick_pos - 6);
             _nick = nick;
+			_name = nick;
         }
     }
 }

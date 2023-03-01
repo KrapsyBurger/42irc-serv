@@ -50,14 +50,14 @@ std::string RPL_MYINFO( User & user ) {
 	return ( ":" + user.getName() + " 002 " + user.getNick() + " :" + user.getHost() + " 42 iwso ntio\n" );
 }
 
-std::string NICK( User & user ) {
+std::string NICK( User & user, std::string nick ) {
 	
-	return ( ": NICK: " + user.getNick() + "\n");
+	return ( ":" + user.getName() + " NICK " + nick + "\n");
 }
 
 std::string PONG( User & user ) {
 	
-	return ( ": PONG: " + user.getNick() + "\n");
+	return ( ":" + user.getName() + " PONG " + user.getHost() + "\n");
 }
 
 void stream( std::string str, User & user ) {
@@ -66,15 +66,28 @@ void stream( std::string str, User & user ) {
     std::string word;
 	if ( iss >> word ) {
 		
-		if ( word == "PING") {
+		if ( word == "NICK") {
 
-				if ( iss >> word ) {
+			if ( iss >> word ) {
 
-					if ( user.getNick() == word )
-						send( user.getFd(), PONG( user ).c_str(), PONG( user ).length(), 0 );
+				if ( user.getNick() != word ) {
+
+					std::string str = NICK( user, word );
+					user.setNick( word );
+					send( user.getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
 				}
 			}
-			
+		}
+		else if ( word == "PING") {
+
+			if ( iss >> word ) {
+				std::string str = PONG( user );
+				send( user.getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
+				std::cerr << str << std::endl;
+				str = "PING localhost\n";
+				send( user.getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
+			}
+		}
 	}
 }
 
