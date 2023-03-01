@@ -6,6 +6,10 @@
 #include <arpa/inet.h>
 #include <cstdlib>
 #include <cctype>
+#include <cstring>
+#include <sstream>
+#include <string>
+#include <vector>
 
 
 bool is_string_digit(char *str)
@@ -36,11 +40,6 @@ bool arguments_check(int argc, char *str)
 
 int main(int argc, char **argv)
 {
-	std::string RPL_WELCOME = ":nfascia!nfascia@localhost 001 nfascia :Welcome to the Internet Relay Network nfascia!nfascia@localhost\n";
-	std::string RPL_YOURHOST = ":nfascia!nfascia@localhost 002 nfascia :Your host is <server_name>, running version <666>\n";
-	std::string RPL_CREATED = ":nfascia!nfascia@localhost 003 nfascia :This server was created <date>\n";
-	std::string RPL_MYINFO = ":nfascia!nfascia@localhost 004 nfascia :<server_name> <version> <user_modes> <chan_modes>\n";
-
 	if (!arguments_check(argc, argv[1]))
 		return (-1);
 
@@ -64,8 +63,6 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
-
-
 	int listen_result = listen(sockfd, 5);
 	if (listen_result < 0)
 	{
@@ -76,29 +73,39 @@ int main(int argc, char **argv)
 	std::cout << "Le serveur est connecte sur le port " << argv[1] << "." << std::endl;
 
 
+	pollfd	poll_struct;
+	std::vector<pollfd> poll_vec;
+	std::vector<pollfd>::iterator poll_it;
+	std::vector<pollfd>::iterator poll_endit;
 	char recv_buff[1024];
 	int byte_received;
 	int	clientsockfd;
-	int i = 0;
 	clientsockfd = accept(sockfd, NULL, NULL);
+	poll_struct.fd = clientsockfd;
+	poll_struct.events = POLLIN;
+	poll_struct.revents = 0;
+	poll_vec.push_back(poll_struct);
+	poll_it = poll_vec.begin();
+	poll_endit = poll_vec.end();
 	while (true)
 	{
-		byte_received = recv(clientsockfd, recv_buff, sizeof(recv_buff), 0);
-		recv_buff[byte_received] = '\0';
-
-		if (byte_received > 0)
-			std::cout << "Received : " << std::string(recv_buff, 0, byte_received) << std::endl;
-
-		if (i == 0)
+		while (poll_it != poll_endit)
 		{
-			std::string nick_welcome = ":NICK :nfascia\n";
-			send(clientsockfd, nick_welcome.c_str(), nick_welcome.length(), 0);
-			send(clientsockfd, RPL_WELCOME.c_str(), RPL_WELCOME.length(), 0);
-			send(clientsockfd, RPL_YOURHOST.c_str(), RPL_YOURHOST.length(), 0);
-			send(clientsockfd, RPL_CREATED.c_str(), RPL_CREATED.length(), 0);
-			send(clientsockfd, RPL_MYINFO.c_str(), RPL_MYINFO.length(), 0);
-			i++;
+			if (poll(poll_vec.data(), poll_vec.size(), -1) > 0)
+			{
+				if (poll_it->revents == POLLIN)
+				{
+					byte_received = recv(clientsockfd, recv_buff, sizeof(recv_buff), 0);
+					recv_buff[byte_received] = '\0';
+					if (byte_received > 0)
+						std::cout << "Received : [" << std::string(recv_buff, 0, byte_received) << "]" << std::endl;
+					poll_vec.push_back(poll_struct);
+				}
+			}
+			std::cout << "coucou" << std::endl;
+			poll_it++;
 		}
+		poll_it = poll_vec.begin();
 	}
 	close(sockfd);
 	return (0);
