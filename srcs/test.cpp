@@ -1,21 +1,7 @@
-#include <iostream>
-#include <unistd.h>
-#include <poll.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netdb.h>
-#include <string.h>
-#include <stdio.h>
-#include <string>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <cstdlib>
-#include <cctype>
-#include <vector>
-#include <sstream>
 
 
-// 
+#include "../includes/irc.hpp"
+#include "../includes/User.hpp"
 
 
 bool	is_string_digit( char *str ) {
@@ -42,6 +28,54 @@ bool	arguments_check( int argc, char *str ) {
 		return ( EXIT_FAILURE );
 	}
 	return ( EXIT_SUCCESS );
+}
+
+std::string RPL_WELCOME( User & user ) {
+	
+	return ( ":" + user.getName() + " 001 " + user.getNick() + " :Welcome to the Internet Relay Network " + user.getName() + "\n" );
+} 
+
+std::string RPL_YOURHOST( User & user ) { 
+	
+	return ( ":" + user.getName() + " 002 " + user.getNick() + " :Your host is " + user.getHost() + ", running version 42\n" );
+}
+
+std::string RPL_CREATED( User & user ) { 
+	
+	return ( ":" + user.getName() + " 003 " + user.getNick() + " :This server was created at saint Gliglin\n" );
+}
+
+std::string RPL_MYINFO( User & user ) {
+	
+	return ( ":" + user.getName() + " 002 " + user.getNick() + " :" + user.getHost() + " 42 iwso ntio\n" );
+}
+
+std::string NICK( User & user ) {
+	
+	return ( ": NICK: " + user.getNick() + "\n");
+}
+
+std::string PONG( User & user ) {
+	
+	return ( ": PONG: " + user.getNick() + "\n");
+}
+
+void stream( std::string str, User & user ) {
+
+	std::istringstream iss(str);
+    std::string word;
+	if ( iss >> word ) {
+		
+		if ( word == "PING") {
+
+				if ( iss >> word ) {
+
+					if ( user.getNick() == word )
+						send( user.getFd(), PONG( user ).c_str(), PONG( user ).length(), 0 );
+				}
+			}
+			
+	}
 }
 
 int main(int argc, char **argv)
@@ -116,10 +150,8 @@ int main(int argc, char **argv)
 	char buf[4096];
 
 	bool firstConnection = true;
-	std::string RPL_WELCOME = ":rpol!rpol@localhost 001 rpol :Welcome to the Internet Relay Network rpol!rpol@localhost\n";
-	std::string RPL_YOURHOST = ":rpol!rpol@localhost 002 rpol :Your host is kayak, running version 42\n";
-	std::string RPL_CREATED = ":rpol!rpol@localhost 003 rpol :This server was created at saint Gliglin\n";
-	std::string RPL_MYINFO = ":rpol!rpol@localhost 004 rpol :kayak 42 iwso ntio\n";
+	
+	User *user;
 
 	while ( true ) {
 
@@ -136,20 +168,23 @@ int main(int argc, char **argv)
 			std::cout << "The client disconected." << std::endl;
 			break;
 		}
-
-		std::cout << "Received : " << std::string( buf, 0, bytesRecv ) << std::endl;
+		std::string str = std::string( buf, 0, bytesRecv );
+		std::cout << "Received : " << str << std::endl;
 
 
 		if ( firstConnection ) {
 
-        	send( clientSocket, RPL_WELCOME.c_str(), RPL_WELCOME.length(), 0);
-			send( clientSocket, RPL_YOURHOST.c_str(), RPL_YOURHOST.length(), 0);
-			send( clientSocket, RPL_CREATED.c_str(), RPL_CREATED.length(), 0);
-			send( clientSocket, RPL_MYINFO.c_str(), RPL_MYINFO.length(), 0);
+			user = new User( str, clientSocket );
+
+			user->printInfo();
+        	send( user->getFd(), RPL_WELCOME( *user ).c_str(), RPL_WELCOME( *user ).length(), 0);
+			send( user->getFd(), RPL_YOURHOST( *user ).c_str(), RPL_YOURHOST( *user ).length(), 0);
+			send( user->getFd(), RPL_CREATED( *user ).c_str(), RPL_CREATED( *user ).length(), 0);
+			send( user->getFd(), RPL_MYINFO( *user ).c_str(), RPL_MYINFO( *user ).length(), 0);
 			firstConnection = false;
 		} else {
 			
-			send( clientSocket, buf, bytesRecv + 1, 0);
+			stream( str, *user );
 		}
 
     	
