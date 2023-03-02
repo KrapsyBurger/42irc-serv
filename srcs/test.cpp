@@ -60,35 +60,66 @@ std::string PONG( User & user ) {
 	return ( ":" + user.getName() + " PONG " + user.getHost() + "\n");
 }
 
-void stream( std::string str, User & user ) {
+std::string ERR_PASSWDMISMATCH( User & user ) {
 
-	std::istringstream iss(str);
+
+	
+	return ( ":" + user.getName() + " 464 " + user.getNick() + " :" + user.getHost() + " PASSWORD MISSMATCH\n" );
+}
+
+void stream( std::string str, Server & srv ) {
+	
+	if ( srv.users.empty() )
+		return;
+	std::list<User*>::iterator it = srv.users.begin();
+	User * user = *it;
+	std::istringstream iss( str );
     std::string word;
+
 	if ( iss >> word ) {
 		
 		if ( word == "NICK") {
 
 			if ( iss >> word ) {
 
-				if ( user.getNick() != word ) {
+				if ( user->getNick() != word ) {
 
-					std::string str = NICK( user, word );
-					user.setNick( word );
-					send( user.getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
+					std::string str = NICK( *user, word );
+					user->setNick( word );
+					send( user->getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
 				}
 			}
 		}
 		else if ( word == "PING") {
 
 			if ( iss >> word ) {
-				std::string str = PONG( user );
-				send( user.getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
+				std::string str = PONG( *user );
+				send( user->getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
 				std::cerr << str << std::endl;
 				str = "PING localhost\n";
-				send( user.getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
+				send( user->getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
 			}
 		}
 	}
+}
+
+bool passwordCheck( std::string str, Server & srv ) {
+
+	std::istringstream iss( str );
+    std::string word;
+	while ( iss >> word ) {
+		std::cerr << "|" << word << "|" << std::endl;
+		if ( word == "PASS" ) {
+			
+			if ( iss >> word ) {
+				std::cerr << word << std::endl;
+				std::cerr << srv.getPassword() << std::endl;
+				if ( word == srv.getPassword() )
+					return ( true );
+			}
+		}
+	}
+	return( false );
 }
 
 int main(int argc, char **argv)
@@ -105,6 +136,8 @@ int main(int argc, char **argv)
 	}
 	std::cout << "socket is : " << listening << std::endl;
 	
+	Server *srv = new Server( "localhost", argv[2], listening );
+
 	sockaddr_in hint;
 	hint.sin_family = AF_INET;
 	hint.sin_port = htons( atoi( argv[1] ) );
@@ -164,7 +197,6 @@ int main(int argc, char **argv)
 
 	bool firstConnection = true;
 	
-	User *user;
 
 	while ( true ) {
 
@@ -182,22 +214,28 @@ int main(int argc, char **argv)
 			break;
 		}
 		std::string str = std::string( buf, 0, bytesRecv );
-		std::cout << "Received : " << str << std::endl;
+		std::cout << "Received : [" << str << "]" << std::endl;
 
 
 		if ( firstConnection ) {
 
-			user = new User( str, clientSocket );
+			User usertmp( str, clientSocket );
+			if ( passwordCheck( str, *srv ) ) {
+				User *user = new User( usertmp );
+				srv->users.push_back( user );
 
-			user->printInfo();
-        	send( user->getFd(), RPL_WELCOME( *user ).c_str(), RPL_WELCOME( *user ).length(), 0);
-			send( user->getFd(), RPL_YOURHOST( *user ).c_str(), RPL_YOURHOST( *user ).length(), 0);
-			send( user->getFd(), RPL_CREATED( *user ).c_str(), RPL_CREATED( *user ).length(), 0);
-			send( user->getFd(), RPL_MYINFO( *user ).c_str(), RPL_MYINFO( *user ).length(), 0);
-			firstConnection = false;
+				user->printInfo();
+        		send( user->getFd(), RPL_WELCOME( *user ).c_str(), RPL_WELCOME( *user ).length(), 0);
+				send( user->getFd(), RPL_YOURHOST( *user ).c_str(), RPL_YOURHOST( *user ).length(), 0);
+				send( user->getFd(), RPL_CREATED( *user ).c_str(), RPL_CREATED( *user ).length(), 0);
+				send( user->getFd(), RPL_MYINFO( *user ).c_str(), RPL_MYINFO( *user ).length(), 0);
+				firstConnection = false;
+			} else {
+				send( clientSocket, ERR_PASSWDMISMATCH( usertmp ).c_str(), ERR_PASSWDMISMATCH( usertmp ).length(), 0);
+			}
 		} else {
 			
-			stream( str, *user );
+			stream( str, *srv );
 		}
 
     	

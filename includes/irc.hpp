@@ -6,7 +6,7 @@
 /*   By: rpol <marvin@42.fr>                        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/01 14:19:21 by rpol              #+#    #+#             */
-/*   Updated: 2023/03/01 14:25:30 by rpol             ###   ########.fr       */
+/*   Updated: 2023/03/02 15:18:30 by rpol             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,9 +27,12 @@
 #include <cstdlib>
 #include <cctype>
 #include <vector>
+#include <list>
 #include <sstream>
 
 //class hpp
+#include "Server.hpp"
 #include "User.hpp"
+
 
 #endif

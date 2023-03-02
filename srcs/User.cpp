@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   User.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rpol <rpol@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: rpol <marvin@42.fr>                        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/01 14:22:40 by rpol              #+#    #+#             */
-/*   Updated: 2023/03/01 22:31:48 by rpol             ###   ########.fr       */
+/*   Updated: 2023/03/02 17:18:59 by rpol             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,9 @@ User &User::operator=(const User & toTheRight)
 		
 	this->_fd = toTheRight._fd;
 	this->_nick = toTheRight._nick;
+	this->_name = toTheRight._name;
 	this->_mode = toTheRight._mode;
+	this->_host = toTheRight._host;
 	return ( *this );
 }
 
@@ -77,19 +79,22 @@ std::string User::getHost( void ) {
 
 void User::_setInfo( std::string str, int clientSocket ) {
 	
-	size_t nick_pos = str.find("NICK ");
 	this->_fd = clientSocket;
-	this->_host = "localhost";
-    
-	if ( nick_pos != std::string::npos ) {
-        
-		size_t nick_end_pos = str.find("\n", nick_pos + 5);
-        
-		if ( nick_end_pos != std::string::npos ) {
+	std::istringstream iss( str );
+    std::string word;
+	while ( iss >> word ) {
+		
+		if ( word == "USER" ) {
 			
-            std::string nick = str.substr(nick_pos + 5, nick_end_pos - nick_pos - 6);
-            _nick = nick;
-			_name = nick;
-        }
-    }
+			if ( iss >> word )
+				this->_nick = word;
+			if ( iss >> word )
+				this->_name = word;
+			if ( iss >> word ) {
+				
+				this->_host = word;
+				return;
+			}
+		}
+	}
 }
