@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 	struct sockaddr_in serverAddr;
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(atoi(argv[1]));
-	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	serverAddr.sin_addr.s_addr = inet_addr("0.0.0.0");
 
 	int	bind_result = bind(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
 	if (bind_result < 0)
@@ -79,33 +79,42 @@ int main(int argc, char **argv)
 	std::vector<pollfd>::iterator poll_endit;
 	char recv_buff[1024];
 	int byte_received;
-	int	clientsockfd;
-	clientsockfd = accept(sockfd, NULL, NULL);
-	poll_struct.fd = clientsockfd;
-	poll_struct.events = POLLIN;
-	poll_struct.revents = 0;
 	poll_vec.push_back(poll_struct);
 	poll_it = poll_vec.begin();
 	poll_endit = poll_vec.end();
+	poll_it->fd = sockfd;
+	poll_it->events = POLLIN;
+	poll_it->revents = 0;
 	while (true)
 	{
+		// poll_it->fd = accept(sockfd, NULL, NULL);
+		// poll_it->events = POLLIN;
+		// poll_it->revents = 0;
 		while (poll_it != poll_endit)
 		{
 			if (poll(poll_vec.data(), poll_vec.size(), -1) > 0)
 			{
 				if (poll_it->revents == POLLIN)
 				{
-					byte_received = recv(clientsockfd, recv_buff, sizeof(recv_buff), 0);
-					recv_buff[byte_received] = '\0';
+					if (poll_it->fd == sockfd)
+					{
+						int new_socket = accept(sockfd, NULL, NULL);
+						poll_vec.push_back(poll_struct);
+						poll_it->fd = new_socket;
+						poll_it->events = POLLIN;
+						poll_it->revents = 0;
+						std::cout << "! New client connected !" << std::endl;
+					}
+					byte_received = recv(poll_it->fd, recv_buff, sizeof(recv_buff), 0);
 					if (byte_received > 0)
 						std::cout << "Received : [" << std::string(recv_buff, 0, byte_received) << "]" << std::endl;
-					poll_vec.push_back(poll_struct);
 				}
 			}
-			std::cout << "coucou" << std::endl;
 			poll_it++;
 		}
 		poll_it = poll_vec.begin();
+		poll_endit = poll_vec.end();
+		memset(recv_buff, 0, sizeof(recv_buff));
 	}
 	close(sockfd);
 	return (0);
