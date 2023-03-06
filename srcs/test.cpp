@@ -85,11 +85,9 @@ int main(int argc, char **argv)
 	poll_it->fd = sockfd;
 	poll_it->events = POLLIN;
 	poll_it->revents = 0;
+
 	while (true)
 	{
-		// poll_it->fd = accept(sockfd, NULL, NULL);
-		// poll_it->events = POLLIN;
-		// poll_it->revents = 0;
 		while (poll_it != poll_endit)
 		{
 			if (poll(poll_vec.data(), poll_vec.size(), -1) > 0)
@@ -98,17 +96,20 @@ int main(int argc, char **argv)
 				{
 					if (poll_it->fd == sockfd)
 					{
+						std::cout << "SALUT" << std::endl;
 						int new_socket = accept(sockfd, NULL, NULL);
 						poll_vec.push_back(poll_struct);
+						poll_it++;
 						poll_it->fd = new_socket;
 						poll_it->events = POLLIN;
 						poll_it->revents = 0;
 						std::cout << "! New client connected !" << std::endl;
+						poll_endit = poll_vec.end();
 					}
+				}
 					byte_received = recv(poll_it->fd, recv_buff, sizeof(recv_buff), 0);
 					if (byte_received > 0)
-						std::cout << "Received : [" << std::string(recv_buff, 0, byte_received) << "]" << std::endl;
-				}
+							std::cout << "Received : [" << std::string(recv_buff, 0, byte_received) << "]" << std::endl;
 			}
 			poll_it++;
 		}
