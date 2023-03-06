@@ -106,12 +106,20 @@ int main(int argc, char **argv)
 						std::cout << "! New client connected !" << std::endl;
 						poll_endit = poll_vec.end();
 					}
-				}
-					byte_received = recv(poll_it->fd, recv_buff, sizeof(recv_buff), 0);
-					if (byte_received > 0)
+					else
+					{
+						byte_received = recv(poll_it->fd, recv_buff, sizeof(recv_buff), 0);
+						if (byte_received > 0)
+						{
 							std::cout << "Received : [" << std::string(recv_buff, 0, byte_received) << "]" << std::endl;
-			}
+							std::cout << "POLL : " << poll_it->revents << std::endl;
+						}
+						else
+							std::cout << "RECV FAILED" << std::endl;
+					}
+				}
 			poll_it++;
+			}
 		}
 		poll_it = poll_vec.begin();
 		poll_endit = poll_vec.end();
