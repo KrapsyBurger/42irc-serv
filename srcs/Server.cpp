@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rpol <marvin@42.fr>                        +#+  +:+       +#+        */
+/*   By: rpol <rpol@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/02 15:09:26 by rpol              #+#    #+#             */
-/*   Updated: 2023/03/02 16:51:59 by rpol             ###   ########.fr       */
+/*   Updated: 2023/03/09 00:39:31 by rpol             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,4 +62,18 @@ Server::Server( std::string const hostName, std::string const password, int fd )
 	return;
 }
 
+User * Server::user( int userIndex ) {
+	
+	int index = 1;
 
+	std::list< User * >::iterator it = this->users.begin();
+	std::list< User * >::iterator ite = this->users.end();
+	while ( index != userIndex ) {
+		
+		index++;
+		it++;
+		if ( it == ite)
+			std::cerr << "Error : User in Server ite problem" << std::endl;
+	}
+	return ( *it );
+}

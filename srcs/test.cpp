@@ -67,13 +67,30 @@ std::string ERR_PASSWDMISMATCH( User & user ) {
 	return ( ":" + user.getName() + " 464 " + user.getNick() + " :" + user.getHost() + " PASSWORD MISSMATCH\n" );
 }
 
-void stream( std::string str, Server & srv ) {
+void check_de_la_street( User *user ) {
+
+	user->printInfo();
+    send( user->getFd(), RPL_WELCOME( *user ).c_str(), RPL_WELCOME( *user ).length(), MSG_NOSIGNAL );
+	send( user->getFd(), RPL_YOURHOST( *user ).c_str(), RPL_YOURHOST( *user ).length(), MSG_NOSIGNAL );
+	send( user->getFd(), RPL_CREATED( *user ).c_str(), RPL_CREATED( *user ).length(), MSG_NOSIGNAL );
+	send( user->getFd(), RPL_MYINFO( *user ).c_str(), RPL_MYINFO( *user ).length(), MSG_NOSIGNAL );
+}
+
+void stream( int client_index, Server & srv ) {
 	
-	if ( srv.users.empty() )
+	User * user = srv.user( client_index );
+
+	size_t pos = user->getBuff().find('\r');
+	if ( pos == std::string::npos )
 		return;
-	std::list<User*>::iterator it = srv.users.begin();
-	User * user = *it;
-	std::istringstream iss( str );
+	if ( !user->isUserSet ) {
+
+		user->initUser( srv.getPassword() );
+		if ( user->isUserSet )
+			check_de_la_street( user );
+		return;
+	}
+	std::istringstream iss( user->getBuff() );
     std::string word;
 
 	if ( iss >> word ) {
@@ -96,31 +113,34 @@ void stream( std::string str, Server & srv ) {
 				std::string str = PONG( *user );
 				send( user->getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
 				std::cerr << str << std::endl;
-				str = "PING localhost\n";
-				send( user->getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
 			}
+		} else {
+
+			std::string str = ":" + user->getName() + " 404 " + user->getNick() + " :" + user->getHost() + " UNKNOWN COMMAND YET\n" ;
+			send( user->getFd(), str.c_str(), str.length(), MSG_NOSIGNAL );
 		}
+		user->setBuff( user->getBuff().erase( 0, pos + 1 ) );
 	}
 }
 
-bool passwordCheck( std::string str, Server & srv ) {
+// bool passwordCheck( std::string str, Server & srv ) {
 
-	std::istringstream iss( str );
-    std::string word;
-	while ( iss >> word ) {
-		std::cerr << "|" << word << "|" << std::endl;
-		if ( word == "PASS" ) {
+// 	std::istringstream iss( str );
+//     std::string word;
+// 	while ( iss >> word ) {
+// 		std::cerr << "|" << word << "|" << std::endl;
+// 		if ( word == "PASS" ) {
 			
-			if ( iss >> word ) {
-				std::cerr << word << std::endl;
-				std::cerr << srv.getPassword() << std::endl;
-				if ( word == srv.getPassword() )
-					return ( true );
-			}
-		}
-	}
-	return( false );
-}
+// 			if ( iss >> word ) {
+// 				std::cerr << word << std::endl;
+// 				std::cerr << srv.getPassword() << std::endl;
+// 				if ( word == srv.getPassword() )
+// 					return ( true );
+// 			}
+// 		}
+// 	}
+// 	return( false );
+// }
 
 int main(int argc, char **argv)
 {
@@ -138,13 +158,13 @@ int main(int argc, char **argv)
 	
 	Server *srv = new Server( "localhost", argv[2], listening );
 
-	sockaddr_in hint;
-	hint.sin_family = AF_INET;
-	hint.sin_port = htons( atoi( argv[1] ) );
-	inet_pton( AF_INET, "0.0.0.0", &hint.sin_addr );
+	sockaddr_in serverAddress;
+	serverAddress.sin_family = AF_INET;
+	serverAddress.sin_port = htons( atoi( argv[1] ) );
+	inet_pton( AF_INET, "0.0.0.0", &serverAddress.sin_addr );
 
 	
-	if ( bind( listening, reinterpret_cast< sockaddr * >( &hint ), sizeof( hint ) ) < 0 ) {
+	if ( bind( listening, reinterpret_cast< sockaddr * >( &serverAddress ), sizeof( serverAddress ) ) < 0 ) {
 
 		std::cerr << "Error : cannot bind to IP/Port." << std::endl;
 		return ( EXIT_FAILURE );
@@ -158,90 +178,73 @@ int main(int argc, char **argv)
 		return ( EXIT_FAILURE );
 	}
 
-	sockaddr_in client;
-	socklen_t clientSize = sizeof( client );
-	char host[NI_MAXHOST];
-	char svc[NI_MAXSERV];
-
-	int clientSocket = accept( listening,
-								 reinterpret_cast< sockaddr * >( &client ),
-								  &clientSize );
-
-	if ( clientSocket < 0 ) {
-
-		std::cerr << "Error : problem with client connecting." << std::endl;
-		return ( EXIT_FAILURE );
-	}
-	close( listening );
-
-	memset(host, 0, NI_MAXHOST);
-	memset(svc, 0, NI_MAXSERV);
-
-	int result = getnameinfo( reinterpret_cast< sockaddr * >( &client ),
-								  sizeof ( client ),
-								  host,
-								  NI_MAXHOST,
-								  svc,
-								  NI_MAXSERV,
-								  0);
-	if ( result ) {
-
-		std::cout << host << " connected on " << svc << std::endl;
-	} else {
-
-		inet_ntop( AF_INET, &client.sin_addr, host, NI_MAXHOST );
-		std::cout << host << " connected on " << ntohs( client.sin_port ) << std::endl;
-	}
-
-	char buf[4096];
-
-	bool firstConnection = true;
+	char buff[4096];
 	
 
+	pollfd		poll_fds[1024];
+	poll_fds[0].fd = listening;
+	poll_fds[0].events = POLLIN;
+
+	socklen_t	serverAddressLen = sizeof( serverAddress );
+
+	int	current_client_fd;
+	int	number_of_clients = 0 ;
+	int client_index = 1;
 	while ( true ) {
 
-		memset( buf, 0, 4096 );
-		int bytesRecv = recv( clientSocket, buf, 4096, 0);
-		if ( bytesRecv < 0 ) {
+		if ( client_index > number_of_clients ) {
 
-			std::cerr << "Error : connection issue." << std::endl;
-			break;
+			client_index = 1;
 		}
 
-		if ( !bytesRecv ) {
+		if ( poll( poll_fds, number_of_clients + 1, 10 ) < 0 ) {
 
-			std::cout << "The client disconected." << std::endl;
-			break;
+			std::cerr << "Error : cannot create new poll" << std::endl;
+			return ( EXIT_FAILURE );
 		}
-		std::string str = std::string( buf, 0, bytesRecv );
-		std::cout << "Received : [" << str << "]" << std::endl;
-
-
-		if ( firstConnection ) {
-
-			User usertmp( str, clientSocket );
-			if ( passwordCheck( str, *srv ) ) {
-				User *user = new User( usertmp );
-				srv->users.push_back( user );
-
-				user->printInfo();
-        		send( user->getFd(), RPL_WELCOME( *user ).c_str(), RPL_WELCOME( *user ).length(), 0);
-				send( user->getFd(), RPL_YOURHOST( *user ).c_str(), RPL_YOURHOST( *user ).length(), 0);
-				send( user->getFd(), RPL_CREATED( *user ).c_str(), RPL_CREATED( *user ).length(), 0);
-				send( user->getFd(), RPL_MYINFO( *user ).c_str(), RPL_MYINFO( *user ).length(), 0);
-				firstConnection = false;
-			} else {
-				send( clientSocket, ERR_PASSWDMISMATCH( usertmp ).c_str(), ERR_PASSWDMISMATCH( usertmp ).length(), 0);
-			}
-		} else {
+		
+		if ( poll_fds[0].revents & POLLIN ) {
 			
-			stream( str, *srv );
+			current_client_fd = accept( listening,
+									  reinterpret_cast< sockaddr * >( &serverAddress ),
+									  &serverAddressLen );
+			if ( current_client_fd < 0 ) {
+				
+				std::cerr << "Error : cannot accept new client" << std::endl;
+				return ( EXIT_FAILURE );
+			
+			} else {
+				
+				srv->users.push_back( new User( current_client_fd ) );
+				number_of_clients++;
+				poll_fds[number_of_clients].fd = current_client_fd;
+				poll_fds[number_of_clients].events = POLLIN; 
+				std::cout << "New connection :" << number_of_clients << std::endl;
+			}
 		}
 
-    	
+		if ( poll_fds[client_index].revents & POLLIN ) {
+			
+			int bytesRecv = recv( poll_fds[client_index].fd, buff, 4096, 0);
+			if ( bytesRecv < 0 ) {
+
+				std::cerr << "Error : cannot read client " << client_index << std::endl;
+				return ( EXIT_FAILURE );
+			} else {
+				
+				std::string strBuff = std::string( buff, 0, bytesRecv );
+				std::cout << "Received : [" << strBuff << "] from user " << client_index <<std::endl;
+				srv->user( client_index )->appendBuff( strBuff );
+			}
+		}
+		
+		if ( !srv->users.empty() ) {
+			stream( client_index, *srv );
+		}
+
+		memset( buff, 0, sizeof( buff ) );
+		client_index++;
 	}
 
-	close( clientSocket );
-	
 	return ( EXIT_SUCCESS );
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   User.hpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rpol <marvin@42.fr>                        +#+  +:+       +#+        */
+/*   By: rpol <rpol@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/01 14:18:45 by rpol              #+#    #+#             */
-/*   Updated: 2023/03/02 17:17:07 by rpol             ###   ########.fr       */
+/*   Updated: 2023/03/09 02:01:04 by rpol             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,34 +26,45 @@ class User {
 		User & operator=( const User & toTheRight );
 		~User( void );
 
-		User( std::string str, int clientSocket );
+		User( int clientSocket );
 
 		void printInfo();
 
-		std::string getNick( void );
-		std::string getName( void );
-		std::string getHost( void );
-		int			getFd( void );
+
+		std::string getName( void ) const;
+		std::string getHost( void ) const;
+		int			getFd( void ) const;
+		
 		void		setNick( std::string nick );
+		std::string getNick( void ) const;		
+		
+		std::string	getBuff( void ) const;
+		void		setBuff( std::string buff );
+		void		appendBuff( std::string buff );
+
+		void		initUser( std::string password ); 
+		
+		bool		isUserSet;
 		
 	private:
 
 		//canon
 		User( void );
 
-
-
-		void 	_setInfo( std::string buf, int clientSocket  );
 		
-
-
 		std::string _nick;
 		
 		std::string _name;
 
 		std::string _host;
+
+		std::string _buff;
+
+		bool _isPasswordChecked;
 		
 		int _fd;
+
+		
 
 		int _mode;
 };
