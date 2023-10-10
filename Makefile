@@ -1,8 +1,33 @@
 NAME		= ircserv
+HOSTNAME	= $(shell hostname)
 
 SRC			= main.cpp \
 			  User.cpp \
-			  Server.cpp
+			  Server.cpp \
+			  utils.cpp \
+			  Channel.cpp \
+			  commands/EXECUTE.cpp \
+			  commands/NICK.cpp \
+			  commands/CAP.cpp \
+			  commands/PASS.cpp \
+			  commands/USER.cpp \
+			  commands/PING.cpp \
+			  commands/WHO.cpp \
+			  commands/OPER.cpp \
+			  commands/WHOIS.cpp \
+			  commands/JOIN.cpp \
+			  commands/PART.cpp \
+			  commands/TOPIC.cpp \
+			  commands/INVITE.cpp \
+			  commands/KICK.cpp \
+			  commands/KILL.cpp \
+			  commands/MODE.cpp \
+			  commands/PRIVMSG.cpp \
+			  commands/NOTICE.cpp \
+			  commands/BOT.cpp \
+			  commands/QUIT.cpp 
+
+PROGRAMVAR		:= -DHOSTNAME=\"$(HOSTNAME)\"
 
 SRCSPATH 	= srcs
 
@@ -25,7 +50,8 @@ OBJS        = $(addprefix $(OBJDIR)/,${SRC:.cpp=.o})
 $(OBJDIR)/%.o: $(SRCSPATH)/%.cpp
 	@printf "$(_ORANGE)Compiling : %s\n" $<
 	@mkdir -p $(OBJDIR)
-	@$(CC) $(CFLAGS) -I $(INCLUDES) -c $< -o $@
+	@mkdir -p $(OBJDIR)/commands/
+	@$(CC) $(CFLAGS) -I $(INCLUDES) $(PROGRAMVAR) -c $< -o $@
 
 all: ${NAME}
 
@@ -37,6 +63,7 @@ ${NAME}:	${OBJS}
 clean:
 	@printf "$(_RED)Removing objects...\n"
 	@${RM} ${OBJS} ./all_o/*.o ./all_o/*.d
+	@${RM} ${OBJS} ./all_o/commands
 
 fclean:	clean
 	@printf "$(_RED)Removing $(NAME)...\n"

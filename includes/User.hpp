@@ -6,7 +6,7 @@
 /*   By: nfascia <nathanfascia@gmail.com>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/01 14:18:45 by rpol              #+#    #+#             */
-/*   Updated: 2023/03/13 17:44:18 by nfascia          ###   ########.fr       */
+/*   Updated: 2023/03/22 16:58:26 by nfascia          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,6 @@
 class User {
 	
 	public:
-		//canon
 		User( const User & to_copy );
 		User & operator=( const User & toTheRight );
 		~User( void );
@@ -28,6 +27,7 @@ class User {
 
 		void 		printInfo();
 		std::string getName( void ) const;
+		std::string getRealName( void ) const;
 		std::string getHost( void ) const;
 		int			getFd( void ) const;	
 		void		setNick( std::string nick );
@@ -35,22 +35,28 @@ class User {
 		std::string	getBuff( void ) const;
 		void		setBuff( std::string buff );
 		void		appendBuff( std::string buff );
-		void		initUser( std::string password ); 
+		void		setName( std::string Name );
+		void		setHost( std::string Host );
+		void		clearNick( void );
 
 		bool		isUserSet;
 		bool		isAlive;
-		
+		bool		isIrssi;
+		bool 		isPasswordChecked;
+		bool		visible;
+		bool		isServerOperator;
+
+		void 		update_modes(const std::string& mode_changes);
+
 	private:
-		//canon
 		User( void );
 
 		std::string _nick;		
 		std::string _name;
 		std::string _host;
 		std::string _buff;
-		bool 		_isPasswordChecked;
+
 		int 		_fd;
-		int 		_mode;
 };
 
 #endif
